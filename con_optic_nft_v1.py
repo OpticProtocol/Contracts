@@ -18,7 +18,7 @@ def change_metadata(key: str, value: Any):
 @export
 def add_master_contract(key: str):
     is_operator()
-    metadata['master_contract'].add(key)
+    metadata['master_contract'].append(key)
 
 @export
 def mint(thing: str, name: str, meta: dict, creator: str, stage: int):
