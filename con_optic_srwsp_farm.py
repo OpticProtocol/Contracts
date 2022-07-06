@@ -61,16 +61,26 @@ def redeem_instant(amount: float):
     
     con_optic_srwsp_lst001.transfer_from(amount, ctx.this, user)
     BURN = amount * metadata['instant_burn']
-
+    
+    #calculate balance amount
+    TOTAL = RWSP[ctx.this]   
+    
+    #remove all farm in rocketswap
     ROCKET = I.import_module(metadata['rwsp_contract'])
     REMOVE = ROCKET.withdrawTokensAndYield()
     
+    #calculate initial balance and Yield amount
+    REWARDS = REMOVE - TOTAL
+    
     metadata['fees'] += BURN
+    metadata['contract_farm'] += REWARDS
 
     con_rswp_lst001.transfer_from(amount - BURN, user, ctx.this)    
     con_rswp_lst001.transfer_from(BURN, metadata['fees_wallet'], ctx.this)
-
-    TOTAL = RWSP[ctx.this]
+    
+    #calculate balance amount
+    TOTAL = RWSP[ctx.this]    
+    #add staking in rocketswap again
     ROCKET.addStakingTokens(amount=TOTAL)
     
     metadata['srwsp_convert'] -= amount
@@ -99,10 +109,17 @@ def claim_merge_slow():
     amount = S[user, 'merge']
     assert amount > 0, 'You must claim something.'
     
+    #calculate balance amount
+    TOTAL = RWSP[ctx.this]   
+    
     #remove all farm in rocketswap
     ROCKET = I.import_module(metadata['rwsp_contract'])
     REMOVE = ROCKET.withdrawTokensAndYield()
-
+    
+    #calculate initial balance and Yield amount
+    REWARDS = REMOVE - TOTAL
+    metadata['contract_farm'] += REWARDS
+    
     con_rswp_lst001.transfer_from(amount, user, ctx.this)
     
     #calculate balance amount
@@ -212,7 +229,7 @@ def claim_contract_farm():
 
     #claim rewards in rocketswap
     ROCKET = I.import_module(metadata['rwsp_contract'])
-    metadata['contract_farm'] = ROCKET.withdrawYield(amount=999_999_999)
+    metadata['contract_farm'] += ROCKET.withdrawYield(amount=999_999_999)
     return metadata['contract_farm']
 
 @export
