@@ -27,7 +27,6 @@ def seed():
     metadata['rewards_fees'] = decimal('0.1')   
     blockdata['block_emergency'] = False  
     metadata['instant_burn'] = decimal('0.03')
-    metadata['emergency_contract'] = 1  
     metadata['rwsp_contract'] = 'con_staking_rswp_rswp_interop_v2' 
     metadata['var_contract'] = 'Deposits'
     metadata['operator_sign'] = [ctx.caller, '24f4184c9d9e8e8440067e75fb4c82d44c51c529581dd40e486a0ca989639600', 'b1c4b6a0baa3cef7fd57a191d3fe0798748b439ddf566825a2b614eb250bb519']
@@ -38,11 +37,12 @@ def seed():
 
 @export
 def convert(amount: float):
+    #convert rwsp token to srwsp token
     block_emergency()
     user = ctx.caller
     assert amount > 0, 'You must stake something.'
     assert RWSP[user] >= amount, 'Not enough coins to send!'
-
+    
     con_rswp_lst001.transfer_from(amount, ctx.this, user)
     con_optic_srwsp_lst001.transfer_from(amount, user, ctx.this)
 
@@ -52,6 +52,8 @@ def convert(amount: float):
 
 @export
 def redeem_instant(amount: float):
+    #redeem instant rwsp token
+    #pay fee in rwsp (0.03)
     block_emergency()
     user = ctx.caller
     assert amount > 0, 'You must stake something.'
@@ -77,6 +79,8 @@ def redeem_instant(amount: float):
 
 @export
 def redeem_slow(amount: float):
+    #redeem rswp, no pay fee
+    #the unstaking period which is 7 days.
     block_emergency() 
     user = ctx.caller
     assert amount > 0, 'You must stake something.'
@@ -94,13 +98,16 @@ def claim_merge_slow():
     user = ctx.caller
     amount = S[user, 'merge']
     assert amount > 0, 'You must claim something.'
-
+    
+    #remove all farm in rocketswap
     ROCKET = I.import_module(metadata['rwsp_contract'])
     REMOVE = ROCKET.withdrawTokensAndYield()
 
     con_rswp_lst001.transfer_from(amount, user, ctx.this)
     
+    #calculate balance amount
     TOTAL = RWSP[ctx.this]
+    #add staking in rocketswap again
     ROCKET.addStakingTokens(amount=TOTAL)
 
     S[user, 'merge'] = 0
@@ -125,6 +132,8 @@ def farm(amount: float):
    
     con_optic_srwsp_lst001.transfer_from(amount, ctx.this, user)
 
+    #only if user farm with srwsp
+    #add the amount in staking in rocketswap
     ROCKET = I.import_module(metadata['rwsp_contract'])
     ROCKET.addStakingTokens(amount=amount)
 
@@ -201,12 +210,15 @@ def claim_contract_farm():
     assert ctx.caller == metadata['operator'
         ], 'Only operator can set metadata!'
 
+    #claim rewards in rocketswap
     ROCKET = I.import_module(metadata['rwsp_contract'])
     metadata['contract_farm'] = ROCKET.withdrawYield(amount=999_999_999)
     return metadata['contract_farm']
 
 @export
 def remove_emergency(amount: float):
+    #remove amount of rwsp token for emergency
+    #multising method
     assert_signer_is_operator()
     metadata['remove', ctx.caller] = amount
     agreed = True
