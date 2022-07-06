@@ -24,6 +24,7 @@ def seed():
     metadata['srwsp_convert'] = 0
     metadata['srwsp_farm'] = 0
     metadata['contract_farm'] = 0
+    metadata['farm_end'] = False
     metadata['rewards_fees'] = decimal('0.1')   
     blockdata['block_emergency'] = False  
     metadata['instant_burn'] = decimal('0.03')
@@ -61,27 +62,31 @@ def redeem_instant(amount: float):
     
     con_optic_srwsp_lst001.transfer_from(amount, ctx.this, user)
     BURN = amount * metadata['instant_burn']
-    
-    #calculate balance amount
-    TOTAL = RWSP[ctx.this]
-    
-    #remove all farm in rocketswap
-    ROCKET = I.import_module(metadata['rwsp_contract'])
-    REMOVE = ROCKET.withdrawTokensAndYield()
-    
-    #calculate initial balance and Yield amount
-    REWARDS = REMOVE - TOTAL
-    
     metadata['fees'] += BURN
-    metadata['contract_farm'] += REWARDS
+    if metadata['farm_end'] == False:
+        #calculate balance amount
+        TOTAL = RWSP[ctx.this]
 
-    con_rswp_lst001.transfer_from(amount - BURN, user, ctx.this)    
-    con_rswp_lst001.transfer_from(BURN, metadata['fees_wallet'], ctx.this)
-    
-    #calculate balance amount
-    TOTAL = RWSP[ctx.this]  
-    #add staking in rocketswap again
-    ROCKET.addStakingTokens(amount=TOTAL)
+        #remove all farm in rocketswap
+        ROCKET = I.import_module(metadata['rwsp_contract'])
+        REMOVE = ROCKET.withdrawTokensAndYield()
+
+        #calculate initial balance and Yield amount
+        REWARDS = REMOVE - TOTAL
+
+     
+        metadata['contract_farm'] += REWARDS
+
+        con_rswp_lst001.transfer_from(amount - BURN, user, ctx.this)    
+        con_rswp_lst001.transfer_from(BURN, metadata['fees_wallet'], ctx.this)
+
+        #calculate balance amount
+        TOTAL = RWSP[ctx.this]  
+        #add staking in rocketswap again
+        ROCKET.addStakingTokens(amount=TOTAL)
+     else:
+        con_rswp_lst001.transfer_from(amount - BURN, user, ctx.this)    
+        con_rswp_lst001.transfer_from(BURN, metadata['fees_wallet'], ctx.this)
     
     metadata['srwsp_convert'] -= amount
     return amount
@@ -109,23 +114,26 @@ def claim_merge_slow():
     amount = S[user, 'merge']
     assert amount > 0, 'You must claim something.'
     
-    #calculate balance amount
-    TOTAL = RWSP[ctx.this]
-    
-    #remove all farm in rocketswap
-    ROCKET = I.import_module(metadata['rwsp_contract'])
-    REMOVE = ROCKET.withdrawTokensAndYield()
-    
-    #calculate initial balance and Yield amount
-    REWARDS = REMOVE - TOTAL
-    metadata['contract_farm'] += REWARDS
-    
-    con_rswp_lst001.transfer_from(amount, user, ctx.this)
-    
-    #calculate balance amount
-    TOTAL = RWSP[ctx.this]
-    #add staking in rocketswap again
-    ROCKET.addStakingTokens(amount=TOTAL)
+    if metadata['farm_end'] == False:
+        #calculate balance amount
+        TOTAL = RWSP[ctx.this]
+
+        #remove all farm in rocketswap
+        ROCKET = I.import_module(metadata['rwsp_contract'])
+        REMOVE = ROCKET.withdrawTokensAndYield()
+
+        #calculate initial balance and Yield amount
+        REWARDS = REMOVE - TOTAL
+        metadata['contract_farm'] += REWARDS
+
+        con_rswp_lst001.transfer_from(amount, user, ctx.this)
+
+        #calculate balance amount
+        TOTAL = RWSP[ctx.this]
+        #add staking in rocketswap again
+        ROCKET.addStakingTokens(amount=TOTAL)
+    else:
+        con_rswp_lst001.transfer_from(amount, user, ctx.this)        
 
     S[user, 'merge'] = 0
     return amount
@@ -149,10 +157,11 @@ def farm(amount: float):
    
     con_optic_srwsp_lst001.transfer_from(amount, ctx.this, user)
 
-    #only if user farm with srwsp
-    #add the amount in staking in rocketswap
-    ROCKET = I.import_module(metadata['rwsp_contract'])
-    ROCKET.addStakingTokens(amount=amount)
+    if metadata['farm_end'] == False:
+        #only if user farm with srwsp
+        #add the amount in staking in rocketswap
+        ROCKET = I.import_module(metadata['rwsp_contract'])
+        ROCKET.addStakingTokens(amount=amount)
 
     if S[user, 'start_farm'] is None:
         S[user, 'start_farm'] = now
