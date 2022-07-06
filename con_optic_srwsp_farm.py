@@ -57,7 +57,7 @@ def redeem_instant(amount: float):
     block_emergency()
     user = ctx.caller
     assert amount > 0, 'You must stake something.'
-    assert sRWSP[user] >= amount, 'Not enough sTAU to send!'
+    assert sRWSP[user] >= amount, 'Not enough sRWSP to send!'
     
     con_optic_srwsp_lst001.transfer_from(amount, ctx.this, user)
     BURN = amount * metadata['instant_burn']
@@ -94,7 +94,7 @@ def redeem_slow(amount: float):
     block_emergency() 
     user = ctx.caller
     assert amount > 0, 'You must stake something.'
-    assert sRWSP[user] >= amount, 'Not enough sTAU to send!'
+    assert sRWSP[user] >= amount, 'Not enough sRWSP to send!'
 
     con_optic_srwsp_lst001.transfer_from(amount, ctx.this, user)
 
