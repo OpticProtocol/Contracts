@@ -251,6 +251,9 @@ def remove_emergency(amount: float):
         for op in metadata['operator_sign']:
             metadata['remove', op] = 0
 
+def block_emergency():
+    assert metadata['block_emergency'] == False, 'Block funcion!'            
+            
 @export
 def assert_signer_is_operator():
     assert ctx.signer in metadata['operator_sign'], 'Only executable by operators!'
