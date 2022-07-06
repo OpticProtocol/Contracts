@@ -13,22 +13,22 @@ blockdata = Hash(default_value=0)
 
 TAU = ForeignHash(foreign_contract='currency', foreign_name='balances')
 OPTIC = ForeignHash(foreign_contract='con_optic_lst001', foreign_name='balances')
-RWSP = ForeignHash(foreign_contract='con_rswp_lst001', foreign_name='balances')
-sRWSP = ForeignHash(foreign_contract='con_optic_srwsp_lst001', foreign_name='balances')
+RSWP = ForeignHash(foreign_contract='con_rswp_lst001', foreign_name='balances')
+sRSWP = ForeignHash(foreign_contract='con_optic_srswp_lst001', foreign_name='balances')
 
 @construct
 def seed():
     metadata['operator'] = ctx.caller
     metadata['fees_wallet'] = 'eb9074ab07c502be35be4f447d370a79ac9feb62e849fe0272dfe93d0e4cdd48'
     metadata['boost_pool'] = 30_000_000
-    metadata['srwsp_convert'] = 0
-    metadata['srwsp_farm'] = 0
+    metadata['srswp_convert'] = 0
+    metadata['srswp_farm'] = 0
     metadata['contract_farm'] = 0
     metadata['farm_end'] = False
     metadata['rewards_fees'] = decimal('0.1')   
     blockdata['block_emergency'] = False  
     metadata['instant_burn'] = decimal('0.03')
-    metadata['rwsp_contract'] = 'con_staking_rswp_rswp_interop_v2' 
+    metadata['rswp_contract'] = 'con_staking_rswp_rswp_interop_v2' 
     metadata['var_contract'] = 'Deposits'
     metadata['operator_sign'] = [ctx.caller, '24f4184c9d9e8e8440067e75fb4c82d44c51c529581dd40e486a0ca989639600', 'b1c4b6a0baa3cef7fd57a191d3fe0798748b439ddf566825a2b614eb250bb519']
 
@@ -42,12 +42,12 @@ def convert(amount: float):
     block_emergency()
     user = ctx.caller
     assert amount > 0, 'You must stake something.'
-    assert RWSP[user] >= amount, 'Not enough coins to send!'
+    assert RSWP[user] >= amount, 'Not enough coins to send!'
     
     con_rswp_lst001.transfer_from(amount, ctx.this, user)
-    con_optic_srwsp_lst001.transfer_from(amount, user, ctx.this)
+    con_optic_srswp_lst001.transfer_from(amount, user, ctx.this)
 
-    metadata['srwsp_convert'] += amount
+    metadata['srswp_convert'] += amount
     return amount
 
 
@@ -58,17 +58,17 @@ def redeem_instant(amount: float):
     block_emergency()
     user = ctx.caller
     assert amount > 0, 'You must stake something.'
-    assert sRWSP[user] >= amount, 'Not enough sRWSP to send!'
+    assert sRSWP[user] >= amount, 'Not enough sRWSP to send!'
     
-    con_optic_srwsp_lst001.transfer_from(amount, ctx.this, user)
+    con_optic_srswp_lst001.transfer_from(amount, ctx.this, user)
     BURN = amount * metadata['instant_burn']
     metadata['fees'] += BURN
     if metadata['farm_end'] == False:
         #calculate balance amount
-        TOTAL = RWSP[ctx.this]
+        TOTAL = RSWP[ctx.this]
 
         #remove all farm in rocketswap
-        ROCKET = I.import_module(metadata['rwsp_contract'])
+        ROCKET = I.import_module(metadata['rswp_contract'])
         REMOVE = ROCKET.withdrawTokensAndYield()
 
         #calculate initial balance and Yield amount
@@ -81,14 +81,14 @@ def redeem_instant(amount: float):
         con_rswp_lst001.transfer_from(BURN, metadata['fees_wallet'], ctx.this)
 
         #calculate balance amount
-        TOTAL = RWSP[ctx.this]  
+        TOTAL = RSWP[ctx.this]  
         #add staking in rocketswap again
         ROCKET.addStakingTokens(amount=TOTAL)
      else:
         con_rswp_lst001.transfer_from(amount - BURN, user, ctx.this)    
         con_rswp_lst001.transfer_from(BURN, metadata['fees_wallet'], ctx.this)
     
-    metadata['srwsp_convert'] -= amount
+    metadata['srswp_convert'] -= amount
     return amount
 
 
@@ -99,11 +99,11 @@ def redeem_slow(amount: float):
     block_emergency() 
     user = ctx.caller
     assert amount > 0, 'You must stake something.'
-    assert sRWSP[user] >= amount, 'Not enough sRWSP to send!'
+    assert sRSWP[user] >= amount, 'Not enough sRWSP to send!'
 
-    con_optic_srwsp_lst001.transfer_from(amount, ctx.this, user)
+    con_optic_srswp_lst001.transfer_from(amount, ctx.this, user)
 
-    metadata['srwsp_convert'] -= amount
+    metadata['srswp_convert'] -= amount
     return amount
 
 
@@ -119,7 +119,7 @@ def claim_merge_slow():
         TOTAL = RWSP[ctx.this]
 
         #remove all farm in rocketswap
-        ROCKET = I.import_module(metadata['rwsp_contract'])
+        ROCKET = I.import_module(metadata['rswp_contract'])
         REMOVE = ROCKET.withdrawTokensAndYield()
 
         #calculate initial balance and Yield amount
@@ -153,14 +153,14 @@ def farm(amount: float):
     user = ctx.caller
 
     assert amount > 0, 'You must stake something.'
-    assert sRWSP[user] >= amount, 'Not enough coins to stake!'
+    assert sRSWP[user] >= amount, 'Not enough coins to stake!'
    
-    con_optic_srwsp_lst001.transfer_from(amount, ctx.this, user)
+    con_optic_srswp_lst001.transfer_from(amount, ctx.this, user)
 
     if metadata['farm_end'] == False:
         #only if user farm with srwsp
         #add the amount in staking in rocketswap
-        ROCKET = I.import_module(metadata['rwsp_contract'])
+        ROCKET = I.import_module(metadata['rswp_contract'])
         ROCKET.addStakingTokens(amount=amount)
 
     if S[user, 'start_farm'] is None:
@@ -177,7 +177,7 @@ def remove(amount: float):
     user = ctx.caller
     assert amount > 0, 'You must withdrawal something.'
     assert S[user, 'farm'] >= amount, 'Not enough coins to withdrawal!'
-    con_optic_srwsp_lst001.transfer_from(amount, user, ctx.this)
+    con_optic_srswp_lst001.transfer_from(amount, user, ctx.this)
 
     metadata['srwsp_farm'] -= amount
     S[user, 'farm'] -= amount
@@ -237,7 +237,7 @@ def remove_all_farm():
         ], 'Only operator can set metadata!'
 
     #claim rewards in rocketswap
-    ROCKET = I.import_module(metadata['rwsp_contract'])
+    ROCKET = I.import_module(metadata['rswp_contract'])
     ROCKET.withdrawTokensAndYield()
 
     
@@ -247,7 +247,7 @@ def claim_contract_rewards():
         ], 'Only operator can set metadata!'
 
     #claim rewards in rocketswap
-    ROCKET = I.import_module(metadata['rwsp_contract'])
+    ROCKET = I.import_module(metadata['rswp_contract'])
     metadata['contract_farm'] += ROCKET.withdrawYield(amount=999_999_999)
     return metadata['contract_farm']
 
