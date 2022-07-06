@@ -242,7 +242,7 @@ def remove_all_farm():
 
     
 @export
-def claim_contract_farm():
+def claim_contract_rewards():
     assert ctx.caller == metadata['operator'
         ], 'Only operator can set metadata!'
 
