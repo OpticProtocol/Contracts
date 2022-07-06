@@ -63,8 +63,7 @@ def redeem_instant(amount: float):
     BURN = amount * metadata['instant_burn']
     
     #calculate balance amount
-    rswp_balance = ForeignHash(foreign_contract=metadata['rwsp_contract'], foreign_name=metadata['var_contract'])
-    TOTAL = rswp_balance[ctx.this]['amount']   
+    TOTAL = RWSP[ctx.this]
     
     #remove all farm in rocketswap
     ROCKET = I.import_module(metadata['rwsp_contract'])
@@ -80,7 +79,7 @@ def redeem_instant(amount: float):
     con_rswp_lst001.transfer_from(BURN, metadata['fees_wallet'], ctx.this)
     
     #calculate balance amount
-    TOTAL = rswp_balance[ctx.this]['amount']  
+    TOTAL = RWSP[ctx.this]  
     #add staking in rocketswap again
     ROCKET.addStakingTokens(amount=TOTAL)
     
@@ -111,8 +110,7 @@ def claim_merge_slow():
     assert amount > 0, 'You must claim something.'
     
     #calculate balance amount
-    rswp_balance = ForeignHash(foreign_contract=metadata['rwsp_contract'], foreign_name=metadata['var_contract'])
-    TOTAL = rswp_balance[ctx.this]['amount']  
+    TOTAL = RWSP[ctx.this]
     
     #remove all farm in rocketswap
     ROCKET = I.import_module(metadata['rwsp_contract'])
@@ -125,7 +123,7 @@ def claim_merge_slow():
     con_rswp_lst001.transfer_from(amount, user, ctx.this)
     
     #calculate balance amount
-    TOTAL = rswp_balance[ctx.this]['amount']  
+    TOTAL = RWSP[ctx.this]
     #add staking in rocketswap again
     ROCKET.addStakingTokens(amount=TOTAL)
 
