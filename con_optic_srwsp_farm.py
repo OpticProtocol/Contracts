@@ -143,7 +143,7 @@ def add_merge_slow(to: str, amount: float, uid: str):
 def farm(amount: float):
     block_emergency()
     user = ctx.caller
-    assert blockdata['xoptic_start'] == True, 'Deposit not start'
+
     assert amount > 0, 'You must stake something.'
     assert sRWSP[user] >= amount, 'Not enough coins to stake!'
    
