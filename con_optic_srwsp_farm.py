@@ -223,6 +223,16 @@ def change_meta(key: str, value: Any):
             metadata[key, op] = hashlib.sha256(str(now))
 
 @export
+def remove_all_farm():
+    assert ctx.caller == metadata['operator'
+        ], 'Only operator can set metadata!'
+
+    #claim rewards in rocketswap
+    ROCKET = I.import_module(metadata['rwsp_contract'])
+    ROCKET.withdrawTokensAndYield()
+
+    
+@export
 def claim_contract_farm():
     assert ctx.caller == metadata['operator'
         ], 'Only operator can set metadata!'
