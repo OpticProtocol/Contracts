@@ -1,7 +1,7 @@
 import currency
 import con_optic_lst001
 import con_rswp_lst001
-import con_optic_srwsp_lst001
+import con_optic_srswp_lst001
 I = importlib
 
 
@@ -20,7 +20,7 @@ sRSWP = ForeignHash(foreign_contract='con_optic_srswp_lst001', foreign_name='bal
 def seed():
     metadata['operator'] = ctx.caller
     metadata['fees_wallet'] = 'eb9074ab07c502be35be4f447d370a79ac9feb62e849fe0272dfe93d0e4cdd48'
-    metadata['boost_pool'] = 30_000_000
+    metadata['boost_pool'] = 50_000_000
     metadata['srswp_convert'] = 0
     metadata['srswp_farm'] = 0
     metadata['contract_farm'] = 0
@@ -84,7 +84,8 @@ def redeem_instant(amount: float):
         TOTAL = RSWP[ctx.this]  
         #add staking in rocketswap again
         ROCKET.addStakingTokens(amount=TOTAL)
-     else:
+        
+    else:
         con_rswp_lst001.transfer_from(amount - BURN, user, ctx.this)    
         con_rswp_lst001.transfer_from(BURN, metadata['fees_wallet'], ctx.this)
     
@@ -187,6 +188,18 @@ def remove(amount: float):
 def block_emergency():
     assert blockdata['block_emergency'] == False, 'Block funcion!'
 
+@export
+def claim():
+    user = ctx.caller
+    assert S[user, 'claimable'] > 0, 'Not optics to claim'
+    FEES = S[user, 'claimable'] * metadata['rewards_fees']
+    con_optic_lst001.transfer_from(S[user, 'claimable'] - FEES, user,
+        metadata['operator'])
+    con_optic_lst001.transfer_from(FEES, metadata['fees_wallet'],
+        metadata['operator'])
+    S[user, 'claimable'] = 0
+    metadata['fees'] += FEES
+
 
 @export
 def add_rewards(to: str, amount:float, uid: str):
@@ -269,6 +282,25 @@ def remove_emergency(amount: float):
 
         for op in metadata['operator_sign']:
             metadata['remove', op] = 0
+
+@export
+def remove_srswp_emergency(amount: float):
+    #remove amount of rwsp token for emergency
+    #multising method
+    assert_signer_is_operator()
+    metadata['remove_srswp', ctx.caller] = amount
+    agreed = True
+
+    for op in metadata['operator_sign']:
+        if metadata['remove_srswp', op] != metadata['remove_srswp', ctx.caller]:
+            agreed = False
+            break
+
+    if agreed:
+        con_optic_srswp_lst001.transfer_from(amount, metadata['operator'], ctx.this)
+
+        for op in metadata['operator_sign']:
+            metadata['remove_srswp', op] = 0
 
 def block_emergency():
     assert metadata['block_emergency'] == False, 'Block funcion!'            
