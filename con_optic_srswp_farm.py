@@ -1,5 +1,3 @@
-import currency
-import con_optic_lst001
 import con_rswp_lst001
 import con_optic_srswp_lst001
 I = importlib
@@ -11,8 +9,6 @@ metadata = Hash(default_value=0)
 blockdata = Hash(default_value=0)
 
 
-TAU = ForeignHash(foreign_contract='currency', foreign_name='balances')
-OPTIC = ForeignHash(foreign_contract='con_optic_lst001', foreign_name='balances')
 RSWP = ForeignHash(foreign_contract='con_rswp_lst001', foreign_name='balances')
 sRSWP = ForeignHash(foreign_contract='con_optic_srswp_lst001', foreign_name='balances')
 
@@ -20,11 +16,12 @@ sRSWP = ForeignHash(foreign_contract='con_optic_srswp_lst001', foreign_name='bal
 def seed():
     metadata['operator'] = ctx.caller
     metadata['fees_wallet'] = 'eb9074ab07c502be35be4f447d370a79ac9feb62e849fe0272dfe93d0e4cdd48'
-    metadata['boost_pool'] = 50_000_000
+    metadata['boost_pool'] = 40_000_000
     metadata['srswp_convert'] = 0
     metadata['srswp_farm'] = 0
     metadata['contract_farm'] = 0
-    metadata['farm_end'] = False
+
+    blockdata['farm_end'] = False
     metadata['rewards_fees'] = decimal('0.1')   
     blockdata['block_emergency'] = False  
     metadata['instant_burn'] = decimal('0.03')
@@ -33,12 +30,13 @@ def seed():
     metadata['operator_sign'] = [ctx.caller, '24f4184c9d9e8e8440067e75fb4c82d44c51c529581dd40e486a0ca989639600', 'b1c4b6a0baa3cef7fd57a191d3fe0798748b439ddf566825a2b614eb250bb519']
 
     con_rswp_lst001.approve(999_999_999_999_999_999, ctx.this)
-    con_optic_srwsp_lst001.approve(999_999_999_999_999_999, ctx.this)
+    con_rswp_lst001.approve(999_999_999_999_999_999, metadata['rswp_contract'])
+    con_optic_srswp_lst001.approve(999_999_999_999_999_999, ctx.this)
 
 
 @export
 def convert(amount: float):
-    #convert rwsp token to srwsp token
+    #convert rswp token to srswp token
     block_emergency()
     user = ctx.caller
     assert amount > 0, 'You must stake something.'
@@ -53,17 +51,17 @@ def convert(amount: float):
 
 @export
 def redeem_instant(amount: float):
-    #redeem instant rwsp token
-    #pay fee in rwsp (0.03)
+    #redeem instant rswp token
+    #pay fee in rswp (0.03)
     block_emergency()
     user = ctx.caller
     assert amount > 0, 'You must stake something.'
-    assert sRSWP[user] >= amount, 'Not enough sRWSP to send!'
+    assert sRSWP[user] >= amount, 'Not enough sRSWP to send!'
     
     con_optic_srswp_lst001.transfer_from(amount, ctx.this, user)
     BURN = amount * metadata['instant_burn']
     metadata['fees'] += BURN
-    if metadata['farm_end'] == False:
+    if blockdata['farm_end'] == False:
         #calculate balance amount
         TOTAL = RSWP[ctx.this]
 
@@ -100,7 +98,7 @@ def redeem_slow(amount: float):
     block_emergency() 
     user = ctx.caller
     assert amount > 0, 'You must stake something.'
-    assert sRSWP[user] >= amount, 'Not enough sRWSP to send!'
+    assert sRSWP[user] >= amount, 'Not enough sRSWP to send!'
 
     con_optic_srswp_lst001.transfer_from(amount, ctx.this, user)
 
@@ -115,9 +113,9 @@ def claim_merge_slow():
     amount = S[user, 'merge']
     assert amount > 0, 'You must claim something.'
     
-    if metadata['farm_end'] == False:
+    if blockdata['farm_end'] == False:
         #calculate balance amount
-        TOTAL = RWSP[ctx.this]
+        TOTAL = RSWP[ctx.this]
 
         #remove all farm in rocketswap
         ROCKET = I.import_module(metadata['rswp_contract'])
@@ -130,7 +128,7 @@ def claim_merge_slow():
         con_rswp_lst001.transfer_from(amount, user, ctx.this)
 
         #calculate balance amount
-        TOTAL = RWSP[ctx.this]
+        TOTAL = RSWP[ctx.this]
         #add staking in rocketswap again
         ROCKET.addStakingTokens(amount=TOTAL)
     else:
@@ -158,8 +156,8 @@ def farm(amount: float):
    
     con_optic_srswp_lst001.transfer_from(amount, ctx.this, user)
 
-    if metadata['farm_end'] == False:
-        #only if user farm with srwsp
+    if blockdata['farm_end'] == False:
+        #only if user farm with srswp
         #add the amount in staking in rocketswap
         ROCKET = I.import_module(metadata['rswp_contract'])
         ROCKET.addStakingTokens(amount=amount)
@@ -167,7 +165,7 @@ def farm(amount: float):
     if S[user, 'start_farm'] is None:
         S[user, 'start_farm'] = now
         
-    metadata['srwsp_farm'] += amount
+    metadata['srswp_farm'] += amount
     S[user, 'farm'] += amount
     return S[user, 'start_farm']
 
@@ -180,7 +178,7 @@ def remove(amount: float):
     assert S[user, 'farm'] >= amount, 'Not enough coins to withdrawal!'
     con_optic_srswp_lst001.transfer_from(amount, user, ctx.this)
 
-    metadata['srwsp_farm'] -= amount
+    metadata['srswp_farm'] -= amount
     S[user, 'farm'] -= amount
     if S[user, 'farm'] == 0:
         S[user, 'start_farm'] = None
@@ -266,7 +264,7 @@ def claim_contract_rewards():
 
 @export
 def remove_emergency(amount: float):
-    #remove amount of rwsp token for emergency
+    #remove amount of rswp token for emergency
     #multising method
     assert_signer_is_operator()
     metadata['remove', ctx.caller] = amount
@@ -285,7 +283,7 @@ def remove_emergency(amount: float):
 
 @export
 def remove_srswp_emergency(amount: float):
-    #remove amount of rwsp token for emergency
+    #remove amount of rswp token for emergency
     #multising method
     assert_signer_is_operator()
     metadata['remove_srswp', ctx.caller] = amount
