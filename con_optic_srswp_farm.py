@@ -62,17 +62,16 @@ def redeem_instant(amount: float):
     BURN = amount * metadata['instant_burn']
     metadata['fees'] += BURN
     if blockdata['farm_end'] == False:
-        #calculate balance amount
-        TOTAL = RSWP[ctx.this]
 
         #remove all farm in rocketswap
         ROCKET = I.import_module(metadata['rswp_contract'])
-        REMOVE = ROCKET.withdrawTokensAndYield()
 
+        REMOVE = ROCKET.withdrawYield(amount=999_999_999)
+
+        ROCKET.withdrawTokensAndYield()
         #calculate initial balance and Yield amount
-        REWARDS = REMOVE - TOTAL
+        REWARDS = REMOVE
 
-     
         metadata['contract_farm'] += REWARDS
 
         con_rswp_lst001.transfer_from(amount - BURN, user, ctx.this)    
@@ -114,15 +113,16 @@ def claim_merge_slow():
     assert amount > 0, 'You must claim something.'
     
     if blockdata['farm_end'] == False:
-        #calculate balance amount
-        TOTAL = RSWP[ctx.this]
 
         #remove all farm in rocketswap
         ROCKET = I.import_module(metadata['rswp_contract'])
-        REMOVE = ROCKET.withdrawTokensAndYield()
+
+        REMOVE = ROCKET.withdrawYield(amount=999_999_999)
+        
+        ROCKET.withdrawTokensAndYield()
 
         #calculate initial balance and Yield amount
-        REWARDS = REMOVE - TOTAL
+        REWARDS = REMOVE
         metadata['contract_farm'] += REWARDS
 
         con_rswp_lst001.transfer_from(amount, user, ctx.this)
@@ -251,7 +251,6 @@ def remove_all_farm():
     ROCKET = I.import_module(metadata['rswp_contract'])
     ROCKET.withdrawTokensAndYield()
 
-    
 @export
 def claim_contract_rewards():
     assert ctx.caller == metadata['operator'
@@ -261,6 +260,16 @@ def claim_contract_rewards():
     ROCKET = I.import_module(metadata['rswp_contract'])
     metadata['contract_farm'] += ROCKET.withdrawYield(amount=999_999_999)
     return metadata['contract_farm']
+
+@export
+def remove_claim_rewards(amount: float):
+    assert ctx.caller == metadata['operator'
+        ], 'Only operator can set metadata!'
+
+    assert amount <= metadata['contract_farm'] , 'Only remove rewarrds'
+
+    con_rswp_lst001.transfer_from(amount, metadata['operator'], ctx.this)
+
 
 @export
 def remove_emergency(amount: float):
