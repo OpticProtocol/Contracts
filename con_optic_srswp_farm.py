@@ -266,7 +266,7 @@ def remove_claim_rewards(amount: float):
     assert ctx.caller == metadata['operator'
         ], 'Only operator can set metadata!'
 
-    assert amount <= metadata['contract_farm'] , 'Only remove rewarrds'
+    assert amount <= metadata['contract_farm'] , 'Only remove rewards'
 
     con_rswp_lst001.transfer_from(amount, metadata['operator'], ctx.this)
 
